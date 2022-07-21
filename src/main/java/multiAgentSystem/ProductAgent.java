@@ -38,7 +38,7 @@ public class ProductAgent extends Agent {
 	// agent initializations here
 	protected void setup() {
 		
-		registerAAS();
+		//registerAAS();
 		
 		System.out.println("Agent" + getAID().getName() + " say hello");
 		// Get the name of the process to proceed as a start-up argument
