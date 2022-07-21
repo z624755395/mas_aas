@@ -27,7 +27,7 @@ Multi-Agent System:
 ->Main class choose jade.Boot;  
 ->Arguments:-gui ProductAgent:multiAgentSystem.ProductAgent;ResourceAgent1:multiAgentSystem.ResourceAgent1;ResourceAgent2:multiAgentSystem.ResourceAgent2
 2. Or use commandline:  
-->add classpath: set CLASSPATH=%CLASSPATH%;.;<address>\multiAgentSystem\lib\jade.jar;<address>\multiAgentSystem\lib\Commons-codec\commons-codec-1.3.jar;<address>\SemA\multiAgentSystem\lib\multiAgentSystem-1.1.0.jar  
+->add classpath: set CLASSPATH=%CLASSPATH%;.;(systempath)\lib\jade.jar;(systempath)lib\Commons-codec\commons-codec-1.3.jar;(systempath)\lib\multiAgentSystem-1.1.0.jar  
 ->java jade.Boot -gui ProductAgent:multiAgentSystem.ProductAgent;ResourceAgent1:multiAgentSystem.ResourceAgent1;ResourceAgent2:multiAgentSystem.ResourceAgent2
 
 ## jade
