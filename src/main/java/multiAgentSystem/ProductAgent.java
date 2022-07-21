@@ -2,13 +2,6 @@ package multiAgentSystem;
 
 import java.util.ArrayList;
 
-import org.eclipse.basyx.aas.manager.ConnectedAssetAdministrationShellManager;
-import org.eclipse.basyx.aas.metamodel.api.parts.asset.AssetKind;
-import org.eclipse.basyx.aas.metamodel.map.AssetAdministrationShell;
-import org.eclipse.basyx.aas.metamodel.map.descriptor.CustomId;
-import org.eclipse.basyx.aas.metamodel.map.parts.Asset;
-import org.eclipse.basyx.aas.registration.proxy.AASRegistryProxy;
-import org.eclipse.basyx.submodel.metamodel.api.identifier.IIdentifier;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -24,9 +17,9 @@ import jade.lang.acl.MessageTemplate;
 public class ProductAgent extends Agent {
 	public static final String REGISTRYPATH = "http://localhost:4000/registry";
 	public static final String AASSERVERPATH = "http://localhost:4001/aasServer";
-	public static final IIdentifier PAID = new CustomId("productAgent");
+	//public static final IIdentifier PAID = new CustomId("productAgent");
 	private ProcessPlan plan;
-	private PAsubmodel submodel;
+	//private PAsubmodel submodel;
 	private boolean busy = false;
 	// The Process to proceed
 	private Process currentProcess;
@@ -38,7 +31,7 @@ public class ProductAgent extends Agent {
 	// agent initializations here
 	protected void setup() {
 		
-		registerAAS();
+		//registerAAS();
 		
 		System.out.println("Agent" + getAID().getName() + " say hello");
 		// Get the name of the process to proceed as a start-up argument
@@ -225,7 +218,8 @@ public class ProductAgent extends Agent {
 		}
 		return result;
 	}
-
+	
+	/*
 	private void registerAAS() {
 		// read registry address
 		ConnectedAssetAdministrationShellManager manager = new ConnectedAssetAdministrationShellManager(
@@ -236,6 +230,7 @@ public class ProductAgent extends Agent {
 		// The manager uploads the AAS and registers it in the Registry server
 		manager.createAAS(shell, AASSERVERPATH);
 	}
+	*/
 
 	private ArrayList<ACLMessage> getMsgList() {
 		ArrayList<ACLMessage> msgList = new ArrayList<ACLMessage>();
