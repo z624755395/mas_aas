@@ -95,7 +95,7 @@ public class ProductAgent extends Agent {
 						} catch (FIPAException fe) {
 							fe.printStackTrace();
 						}
-					// Perform the request
+					// Send the request to RAs
 					myAgent.addBehaviour(new RequestPerformer());
 					}else {
 						System.out.println("cannot understand");
@@ -315,7 +315,7 @@ public class ProductAgent extends Agent {
 						new ConnectedAssetAdministrationShellManager(new AASRegistryProxy(Server.REGISTRYPATH));
 		// Retrieve submodel
 		ISubmodel submodel = manager.retrieveSubmodel(Server.OBJAASID, Server.OBJFID);
-		// Retrieve Mathml Property
+		// Retrieve MathML Property
 		ISubmodelElement function = submodel.getSubmodelElement("MathML");
 		// Print value
 		str = (String) function.getValue();;			

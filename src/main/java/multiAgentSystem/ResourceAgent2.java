@@ -54,9 +54,9 @@ public class ResourceAgent2 extends Agent {
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
-		// Add the behaviour serving queries from product agents
+		// Add the behaviour serving requests from the product agent
 		addBehaviour(new RequestsServe());
-		// Add the behaviour serving proceed orders from product agents
+		// Add the behaviour proceeding requests from the product agent
 		addBehaviour(new Proceed());
 	}
 
@@ -182,13 +182,14 @@ public class ResourceAgent2 extends Agent {
 		AssetAdministrationShell shell = new AssetAdministrationShell("ResourceAgent2AAS", RAID, asset);
 		// The manager uploads the AAS and registers it in the Registry server
 		manager.createAAS(shell, AASSERVERPATH);
-		Submodel raSubmodel = new Submodel("Provided_Capability", CAP);
+		// The first submodel
+		Submodel capSubmodel = new Submodel("Provided_Capability", CAP);
 		Property cap1 = new Property ("Cap1", "input");
 		Property cap2 = new Property ("Cap2", "transport");
 		Property cap3 = new Property ("Cap3", "output");
-		raSubmodel.addSubmodelElement(cap1);
-		raSubmodel.addSubmodelElement(cap2);
-		raSubmodel.addSubmodelElement(cap3);
+		capSubmodel.addSubmodelElement(cap1);
+		capSubmodel.addSubmodelElement(cap2);
+		capSubmodel.addSubmodelElement(cap3);
 		// The second submodel
 		Submodel resSubmodel = new Submodel("Resources", RESOURCEN );
 		Property res1 = new Property ("Stack","");
@@ -198,7 +199,7 @@ public class ResourceAgent2 extends Agent {
 		resSubmodel.addSubmodelElement(res2);
 		resSubmodel.addSubmodelElement(res3);
 		//  Push the Submodel to the AAS server
-		manager.createSubmodel(shell.getIdentification(), raSubmodel);
+		manager.createSubmodel(shell.getIdentification(), capSubmodel);
 		manager.createSubmodel(shell.getIdentification(), resSubmodel);
 	}
 	

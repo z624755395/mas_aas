@@ -55,10 +55,9 @@ public class ResourceAgent1 extends Agent {
 			fe.printStackTrace();
 		}
 
-		// Add the behaviour serving queries from product agents
+		// Add the behaviour serving requests from the product agent
 		addBehaviour(new RequestsServe());
-
-		// Add the behaviour serving proceed orders from product agents
+		// Add the behaviour proceeding requests from the product agent
 		addBehaviour(new Proceed());
 
 	}
@@ -93,7 +92,7 @@ public class ResourceAgent1 extends Agent {
 							Process p = plan.getProcess1();
 							if (checkProcess(p)) {
 								reply.setPerformative(ACLMessage.PROPOSE);
-								str = "5;3;3;8;3;2";// processing=5; energy=3; material=3; time=8; quality=3; waster=2
+								str = "5;3;3;8;3;2";// processing=5; energy=3; material=3; time=8; quality=3; waste=2
 							}			
 							break s;
 						}
@@ -184,6 +183,7 @@ public class ResourceAgent1 extends Agent {
 		AssetAdministrationShell shell = new AssetAdministrationShell("ResourceAgent1AAS", RAID, asset);
 		// The manager uploads the AAS and registers it in the Registry server
 		manager.createAAS(shell, AASSERVERPATH);
+		// The first submodel
 		Submodel raSubmodel = new Submodel("Provided_Capability", CAP);
 		Property cap1 = new Property ("Cap1", "input");
 		Property cap2 = new Property ("Cap2", "transport");
