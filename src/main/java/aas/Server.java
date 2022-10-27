@@ -35,7 +35,7 @@ public class Server {
 		public static final String AASSERVERPATH = "http://localhost:4001/aasServer";
 
 		// AAS/Submodel/Property Ids
-		public static final IIdentifier MASAASID = new CustomId("mas");
+		public static final IIdentifier OBJAASID = new CustomId("objF");
 		public static final IIdentifier OBJFID = new CustomId("objectFunction");
 		
 
@@ -47,29 +47,58 @@ public class Server {
 			// Create Manager - This manager is used to interact with an AAS server
 			ConnectedAssetAdministrationShellManager manager = 
 					new ConnectedAssetAdministrationShellManager(new AASRegistryProxy(REGISTRYPATH));
-			
 			// Create AAS and push it to server
-			Asset asset = new Asset("MAS", new CustomId("example.mas"), AssetKind.INSTANCE);
-			AssetAdministrationShell shell = new AssetAdministrationShell("MAS", MASAASID, asset);
-			
+			Asset asset = new Asset("ObjectiveFunction", new CustomId("example.obj"), AssetKind.INSTANCE);
+			AssetAdministrationShell shell = new AssetAdministrationShell("ObjectiveFunctionAAS", OBJAASID, asset);
 			// The manager uploads the AAS and registers it in the Registry server
 			manager.createAAS(shell, AASSERVERPATH);
-			
 			// Create submodel
-			Submodel objFSubmodel = new Submodel("object_Function", OBJFID);
-
-			// - Create property
-			Property cost = new Property("cost_factor", 2);
-			Property time = new Property("time_factor", 3);
-			Property quality = new Property("quality_factor", 4);
-			Property jparse = new Property ("mathFunction","3 * b + a * 4");
-
+			Submodel objFSubmodel = new Submodel("objective_Function", OBJFID);
+			// - Create property		
+			Property jstring = new Property ("JavaString","2*p+1*e+1*m+3*t+2*q+2*m");
+			Property mathml = new Property ("MathML",
+					"<math display = 'block'>\r\n"
+					+ "  <apply>\r\n"
+					+ "    <eq/>\r\n"
+					+ "    <ci>c</ci>\r\n"
+					+ "    <apply>\r\n"
+					+ "      <plus/>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>2</cn>\r\n"
+					+ "        <ci>p</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>1</cn>\r\n"
+					+ "        <ci>e</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>1</cn>\r\n"
+					+ "        <ci>m</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>3</cn>\r\n"
+					+ "        <ci>t</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>2</cn>\r\n"
+					+ "        <ci>q</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "      <apply>\r\n"
+					+ "        <times/>\r\n"
+					+ "        <cn>2</cn>\r\n"
+					+ "        <ci>m</ci>\r\n"
+					+ "      </apply>\r\n"
+					+ "    </apply>\r\n"
+					+ "  </apply>\r\n"
+					+ "</math>");
 			// Add the property to the Submodel
-			objFSubmodel.addSubmodelElement(cost);
-			objFSubmodel.addSubmodelElement(time);
-			objFSubmodel.addSubmodelElement(quality);
-			objFSubmodel.addSubmodelElement(jparse);
-
+			objFSubmodel.addSubmodelElement(jstring);
+			objFSubmodel.addSubmodelElement(mathml);
 			// - Push the Submodel to the AAS server
 			manager.createSubmodel(shell.getIdentification(), objFSubmodel);
 		}
@@ -81,7 +110,6 @@ public class Server {
 			BaSyxContextConfiguration contextConfig = new BaSyxContextConfiguration(4000, "/registry");
 			BaSyxRegistryConfiguration registryConfig = new BaSyxRegistryConfiguration(RegistryBackend.INMEMORY);
 			RegistryComponent registry = new RegistryComponent(contextConfig, registryConfig);
-
 			// Start the created server
 			registry.startComponent();
 		}
@@ -93,7 +121,6 @@ public class Server {
 			BaSyxContextConfiguration contextConfig = new BaSyxContextConfiguration(4001, "/aasServer");
 			BaSyxAASServerConfiguration aasServerConfig = new BaSyxAASServerConfiguration(AASServerBackend.INMEMORY, "", REGISTRYPATH);
 			AASServerComponent aasServer = new AASServerComponent(contextConfig, aasServerConfig);
-
 			// Start the created server
 			aasServer.startComponent();
 		}

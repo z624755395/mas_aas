@@ -13,6 +13,7 @@ multiAgentSystem\ProcessPlan.class
 multiAgentSystem\ResourceAgent2$1.class
 multiAgentSystem\ResourceAgent2$RequestsServe.class
 aas\PAsubmodel.class
+aas\MathML.class
 multiAgentSystem\MAS.class
 multiAgentSystem\ProductAgent.class
 multiAgentSystem\ResourceAgent2.class

@@ -1,82 +1,108 @@
 package multiAgentSystem;
 
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.eclipse.basyx.aas.manager.ConnectedAssetAdministrationShellManager;
 import org.eclipse.basyx.aas.metamodel.api.parts.asset.AssetKind;
 import org.eclipse.basyx.aas.metamodel.map.AssetAdministrationShell;
 import org.eclipse.basyx.aas.metamodel.map.descriptor.CustomId;
 import org.eclipse.basyx.aas.metamodel.map.parts.Asset;
 import org.eclipse.basyx.aas.registration.proxy.AASRegistryProxy;
+import org.eclipse.basyx.submodel.metamodel.api.ISubmodel;
 import org.eclipse.basyx.submodel.metamodel.api.identifier.IIdentifier;
+import org.eclipse.basyx.submodel.metamodel.api.submodelelement.ISubmodelElement;
+import org.eclipse.basyx.submodel.metamodel.api.submodelelement.operation.IOperation;
+import org.eclipse.basyx.submodel.metamodel.map.Submodel;
+import org.eclipse.basyx.submodel.metamodel.map.submodelelement.dataelement.property.Property;
+import org.eclipse.basyx.submodel.metamodel.map.submodelelement.operation.Operation;
+import org.xml.sax.InputSource;
 
+import aas.Server;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
-import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import parsii.eval.Expression;
+import parsii.eval.Parser;
+import parsii.eval.Scope;
+import parsii.eval.Variable;
+
 
 public class ProductAgent extends Agent {
-	public static final String REGISTRYPATH = "http://localhost:4000/registry";
-	public static final String AASSERVERPATH = "http://localhost:4001/aasServer";
+	private static final Pattern eq = Pattern.compile("(\\=)(.*)");
+	private static final String REGISTRYPATH = "http://localhost:4000/registry";
+	private static final String AASSERVERPATH = "http://localhost:4001/aasServer";
 	public static final IIdentifier PAID = new CustomId("productAgent");
+	public static final IIdentifier OBJFID = new CustomId("objectFunction");
+	public static final IIdentifier PROCESS = new CustomId("process");
+	
 	private ProcessPlan plan;
-	//private PAsubmodel submodel;
 	private boolean busy = false;
-	// The Process to proceed
-	private Process currentProcess;
-	// The list of known seller agents
-	private AID[] resouceAgents;
-	// target Process
+	// The list of known resource agents
+	private AID[] resourceAgents;
+	// Target process
 	private String targetProcess;
+	// Objective function
+	private String objF;
 	
 	// agent initializations here
 	protected void setup() {
+		try {
+			plan = new ProcessPlan();
+			registerAAS();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}		
 		
-		//registerAAS();
-		
-		System.out.println("Agent" + getAID().getName() + " say hello");
-		// Get the name of the process to proceed as a start-up argument
-		Object[] args = getArguments();
-		if (args != null && args.length > 0) {
-			targetProcess = (String) args[0];
-			System.out.println("Target process is " + targetProcess);
-
-			// Add a TickerBehaviour that schedules a request to seller agents every 30s
-			addBehaviour(new TickerBehaviour(this, 30000) {
-				protected void onTick() {
-					System.out.println("Trying to proceed " + targetProcess);
-					// Update the list of seller agents
-					DFAgentDescription template = new DFAgentDescription();
-					ServiceDescription sd = new ServiceDescription();
-					sd.setType("ResourceAgent");
-					template.addServices(sd);
-					try {
-						DFAgentDescription[] result = DFService.search(myAgent, template);
-						System.out.println("Found the following resource agents:");
-						resouceAgents = new AID[result.length];
-						for (int i = 0; i < result.length; ++i) {
-							resouceAgents[i] = result[i].getName();
-							System.out.println(resouceAgents[i].getName());
+		addBehaviour(new CyclicBehaviour(){
+			@Override
+			public void action() {
+				//receive message from AMS
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.NOT_UNDERSTOOD);
+				ACLMessage msg = myAgent.receive(mt);
+				if (msg != null) {
+					System.out.println(getAID().getName()+ " receive message: "+ msg.getContent());
+					targetProcess = msg.getContent();
+					if (checkProcess(targetProcess)) {
+						System.out.println("Trying to proceed " + targetProcess);
+						// Update the list of resource agents
+						DFAgentDescription template = new DFAgentDescription();
+						ServiceDescription sd = new ServiceDescription();
+						sd.setType("ResourceAgent");
+						template.addServices(sd);
+						try {
+							DFAgentDescription[] result = DFService.search(myAgent, template);
+							System.out.print("Found the following resource agents: ");
+							resourceAgents = new AID[result.length];
+							for (int i = 0; i < result.length; ++i) {
+								resourceAgents[i] = result[i].getName();
+								System.out.print(resourceAgents[i].getName() + " ");			
+							}
+							System.out.println();
+						} catch (FIPAException fe) {
+							fe.printStackTrace();
 						}
-					} catch (FIPAException fe) {
-						fe.printStackTrace();
-					}
-
 					// Perform the request
 					myAgent.addBehaviour(new RequestPerformer());
-				}
-			});
-		} else {
-			// Make the agent terminate
-			System.out.println("No target Process specified");
-			doDelete();
-		}
+					}else {
+						System.out.println("cannot understand");
+					}
+				}				
+			}						
+		});				
 	}
 
 	// Put agent clean-up operations here
@@ -84,25 +110,38 @@ public class ProductAgent extends Agent {
 		// Printout a dismissal message
 		System.out.println("product agent " + getAID().getName() + " terminating.");
 	}
-
+	
+	// check if the requested process exists in the plan
+	private boolean checkProcess(String s) {
+		Iterator it1 = plan.getProcesses().iterator();
+		while(it1.hasNext()) {
+			Process p = (Process) it1.next();
+			if(s.contains(p.getId())) {
+				return true;
+			}
+		}
+		return false;
+	}	
+	
+	
 	/**
-	 * Inner class RequestPerformer. This is the behaviour used by product agents to
+	 * Inner class RequestPerformer. This is the behaviour used by the product agent to
 	 * request resource agents.
 	 */
 	private class RequestPerformer extends Behaviour {
 		private AID bestOffer; // The agent who provides the best offer
 		private double bestPrice; // The best offered price
-		private int repliesCnt = 0; // The counter of replies from seller agents
+		private int repliesCnt = 0; // The counter of replies from Resource agents
 		private MessageTemplate mt; // The template to receive replies
 		private int step = 0;
 
 		public void action() {
 			switch (step) {
 			case 0:
-				// Send the cfp to all sellers
+				// Send the cfp to all RAs
 				ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-				for (int i = 0; i < resouceAgents.length; ++i) {
-					cfp.addReceiver(resouceAgents[i]);
+				for (int i = 0; i < resourceAgents.length; ++i) {
+					cfp.addReceiver(resourceAgents[i]);
 				}
 				cfp.setContent(targetProcess);
 				cfp.setConversationId("requesting");
@@ -114,7 +153,7 @@ public class ProductAgent extends Agent {
 				step = 1;
 				break;
 			case 1:
-				// Receive all proposals/refusals from seller agents
+				// Receive all proposals/refusals from resource agents
 				ACLMessage reply = myAgent.receive(mt);
 				if (reply != null) {
 					// Reply received
@@ -130,7 +169,7 @@ public class ProductAgent extends Agent {
 						}
 					}
 					repliesCnt++;
-					if (repliesCnt >= resouceAgents.length) {
+					if (repliesCnt >= resourceAgents.length) {
 						// We received all replies
 						step = 2;
 					}
@@ -153,20 +192,20 @@ public class ProductAgent extends Agent {
 				step = 3;
 				break;
 			case 3:
-				// Receive the purchase order reply
+				// Receive the proceed order reply
 				reply = myAgent.receive(mt);
 				if (reply != null) {
-					// Purchase order reply received
+					// Proceed order reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
-						// Purchase successful. We can terminate
+						// Proceed successful. We can terminate
 						System.out.println(
 								targetProcess + " successfully proceed by the agent " + reply.getSender().getName());
 						System.out.println("Total cost = " + bestPrice);
-						myAgent.doDelete();
+						System.out.println("----------------");
+						//myAgent.doDelete();
 					} else {
 						System.out.println("Attempt failed.");
 					}
-
 					step = 4;
 				} else {
 					block();
@@ -203,58 +242,88 @@ public class ProductAgent extends Agent {
 			return null;
 		}
 	}
-
+	
 	/**
 	 * calculate the total cost
 	 */
 	private double calculate(ArrayList<Double> value) {
-		String s = "calculating:";
+		String formula = "";
 		double result = 0;
-		double[] parameter = { 1, 2, 3 };
 		try {
-			for (int i = 0; i < value.size(); i++) {
-				result = result + parameter[i] * value.get(i);
-				s = s + parameter[i] + "*" + value.get(i);
-				if (i + 1 < value.size())
-					s = s + " + ";
-			}
-			s = s + " = " + result;
-			System.out.println(s);
+			 formula = objF;
+	            Matcher m = eq.matcher(formula);
+	            String right = "";
+	            if(m.find()){
+	                right = m.group(2);
+	            }
+	            Scope scope = new Scope();  
+	            Variable a = scope.getVariable("p");  
+	            Variable b = scope.getVariable("e");
+	            Variable c = scope.getVariable("m");
+	            Variable d = scope.getVariable("t");
+	            Variable e = scope.getVariable("q");
+	            Expression expr = Parser.parse(right, scope);   
+	            a.setValue(value.get(0));
+	            b.setValue(value.get(1));
+	            c.setValue(value.get(2));
+	            d.setValue(value.get(3));
+	            e.setValue(value.get(4));
+	            result = expr.evaluate();        
 		} catch (Exception e) {
 			System.out.println("cannot calculate the total coast, wrong dimension");
 		}
 		return result;
 	}
 
-	private void registerAAS() {
+	private void registerAAS() throws Exception {
 		// read registry address
 		ConnectedAssetAdministrationShellManager manager = new ConnectedAssetAdministrationShellManager(
 				new AASRegistryProxy(REGISTRYPATH));
 		// Create AAS and push it to server
-		Asset asset = new Asset("PA", new CustomId("example.pa"), AssetKind.INSTANCE);
-		AssetAdministrationShell shell = new AssetAdministrationShell("PA", PAID, asset);
+		Asset asset = new Asset("ProductAgent", new CustomId("mas.pa"), AssetKind.INSTANCE);
+		AssetAdministrationShell shell = new AssetAdministrationShell("ProductAgentAAS", PAID, asset);
 		// The manager uploads the AAS and registers it in the Registry server
 		manager.createAAS(shell, AASSERVERPATH);
+		Submodel objFSubmodel = new Submodel("objective_function", OBJFID);
+		// read and parse Function
+		objF = readObjF();	
+		Property obj = new Property ("Function", objF);
+		objFSubmodel.addSubmodelElement(obj);
+		// Push the Submodel to the AAS server
+		manager.createSubmodel(shell.getIdentification(), objFSubmodel);
+		// the second submodel
+		ArrayList<Process> processes = plan.getProcesses();
+		for (int i = 0; i < processes.size(); i++) {
+			Process process = processes.get(i);		
+			IIdentifier IId = new CustomId("process"+ i);
+			Submodel processSubmodel = new Submodel(process.getId(), IId );
+			ArrayList<String> reqCaps = process.getRequiredCap();
+			for (int j = 1; j -1 < reqCaps.size(); j++) {
+				Property prop = new Property ("requiredcapabilty" + j, reqCaps.get(j-1));
+				processSubmodel.addSubmodelElement(prop);
+			}
+			manager.createSubmodel(shell.getIdentification(), processSubmodel);			
+		}
+		System.out.println("PA obj. function: " + objF);
 	}
-
-	private ArrayList<ACLMessage> getMsgList() {
-		ArrayList<ACLMessage> msgList = new ArrayList<ACLMessage>();
-		AID r = new AID();
-		r.setLocalName("ra"); // receiver name
-
-		ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // first inform message
-		msg.addReceiver(r);
-		msg.setSender(getAID()); // sender name
-		msg.setContent("this is Message 1");
-		msgList.add(msg);
-
-		msg = new ACLMessage(ACLMessage.INFORM); // second inform message
-		msg.addReceiver(r);
-		msg.setSender(getAID()); // sender name
-		msg.setContent("this is Message 2");
-		msgList.add(msg);
-		return msgList;
+	
+	private String readObjF() throws Exception {
+		String str = "";
+		String result = "";
+		// Create Manager
+		ConnectedAssetAdministrationShellManager manager =
+						new ConnectedAssetAdministrationShellManager(new AASRegistryProxy(Server.REGISTRYPATH));
+		// Retrieve submodel
+		ISubmodel submodel = manager.retrieveSubmodel(Server.OBJAASID, Server.OBJFID);
+		// Retrieve Mathml Property
+		ISubmodelElement function = submodel.getSubmodelElement("MathML");
+		// Print value
+		str = (String) function.getValue();;			
+		SAXReader sax = new SAXReader();			
+		Document document = sax.read(new InputSource(new StringReader(str)));        
+		MathParser mp = new MathParser();
+		result = mp.parserXml(str);	
+		return result;
 	}
-
 }
 
