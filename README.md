@@ -11,7 +11,7 @@ This project implements product agents and resource agents.
 
 
 ## Background
-In this project, Eclipse Basyx SDK is used.  
+In this project, Eclipse Basyx SDK and JADE are used.  
 The documentation of Eclipse Basyx: https://wiki.eclipse.org/BaSyx
 Agents are implemented using Jade(JAVA Agent DEvelopment Framework)
 The website of Jade:https://jade.tilab.com/
